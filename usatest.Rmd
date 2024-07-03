@@ -1,0 +1,253 @@
+---
+title: "Usagetest of new gazepath update"
+author: "Helio"
+date: "2024-07-03"
+output: html_document
+---
+
+
+```{r}
+# takes too long
+# why do i ned to do this below to avoid errors in the gazath
+dta_4gazepath_stim<- as.data.frame(as.matrix(dta_4gazepath_stim))
+# 
+# dta_4gazepath_stim1$left_gaze_x_cor_pix<- as.numeric(dta_4gazepath_stim1$left_gaze_x_cor_pix)
+# dta_4gazepath_stim1$left_gaze_y_cor_pix<- as.numeric(dta_4gazepath_stim1$left_gaze_y_cor_pix)
+# dta_4gazepath_stim1$right_gaze_x_cor_pix<- as.numeric(dta_4gazepath_stim1$right_gaze_x_cor_pix)
+# dta_4gazepath_stim1$right_gaze_y_cor_pix<- as.numeric(dta_4gazepath_stim1$right_gaze_y_cor_pix)
+# dta_4gazepath_stim1$distance_mm<- as.numeric(dta_4gazepath_stim1$distance_mm)
+
+
+# Convert relevant columns to numeric
+colnames(dta_4gazepath_stim)
+
+
+dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)] <- lapply(dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)], as.numeric)
+
+dta_4gazepath_stim$trial_no<-as.numeric(dta_4gazepath_stim$trial_no)
+
+dta_4gazepath_stim$trial_no<- as.factor(dta_4gazepath_stim$trial_no)
+unique(dta_4gazepath_stim$trial_no)
+
+dta_142<- dta_4gazepath_stim%>%
+  subset(ssid =="142")
+
+dta_140<- dta_4gazepath_stim%>%
+  subset(ssid =="140")
+
+library(zoo)
+
+
+unique(dta_142$trial_no)
+
+
+ppt140 <- gazepath(dta_140, 
+                   x1 = 17, y1 = 19, 
+                   x2 = 18, y2 = 20,
+                   d1 = 23, d2 = 23,
+                   trial = 28, # Ensure this is a character or factor
+                   height_px = 1080, height_mm = 295,
+                   width_px = 1920, width_mm = 525,
+                   extra_var = c("text","trial_no_gpid_stim","trial_no","stimnopath_no_na"),
+              
+                   #rror in data.frame(simple, extra[i]) : 
+                   # arguments imply differing number of rows: 345, 0 
+                   # is related to etxra var
+                   method = 'gazepath',
+                   samplerate = 150)
+
+
+ppt142 <- gazepath(dta_142, 
+                   x1 = 17, y1 = 19, 
+                   x2 = 18, y2 = 20,
+                   d1 = 23, d2 = 23,
+                   trial = 28, # Ensure this is a character or factor
+                   height_px = 1080, height_mm = 295,
+                   width_px = 1920, width_mm = 525,
+                   extra_var = c("text","trial_no_gpid_stim","trial_no","stimnopath_no_na"),
+                   method = 'gazepath',
+                   samplerate = 150)
+
+
+
+gp_ppt142<- summary.gazepath(ppt142)
+plot.gazepath(ppt142, trial_index = 5)
+
+
+gp_ppt140<- summary.gazepath(ppt140)
+
+max(gp_ppt140$Duration)
+
+max(gp_ppt140$End)
+
+unique(gp_ppt140$text)
+range(dta_140$trial_no)
+
+dta_140$trial_no<- dta_140$trial_no-1
+dta_140$trial_no_gpid_stim[dta_140$trial_no==6]
+
+dta_140$trial_no[dta_140$stimnopath_no_na=="112.jpg"]
+dta_140$trial_no[dta_140$stimnopath_no_na=="6300.jpg"]
+dta_140$trial_no[dta_140$stimnopath_no_na=="2457.jpg"]
+
+table(dta_140$trial_no)
+length(unique(dta_140$text))
+length(unique(gp_ppt140$Trial))
+# one less probably because not enough hgaze for parsiong
+
+length(unique(dta_142$text))
+length(unique(gp_ppt142$Trial))
+
+dta_140%>%
+  subset(trial_no == 62)%>%
+  ggplot(aes(as.numeric(time), as.numeric(left_gaze_y_cor_pix )))+
+  geom_line()
+
+# the extrtrial_no
+2457
+
+plot.gazepath(ppt140, trial_index = 6)
+plot.gazepath(ppt140, trial_index = 7)
+plot.gazepath(ppt140, trial_index = 28)
+
+plot.gazepath(ppt140, trial_index = 50)
+
+```
+
+
+possibly sol;ve the duplicate issue earlier befroe eexporting to gazeptah, but chek here that thats the issue
+
+```{r}
+
+dta_140$event_id
+
+
+dta_140$event_id<- as.numeric(dta_140$event_id)
+dta_140$time<- as.numeric(dta_140$time)
+
+dta_140_nodup<- dta_140%>%
+  # group_by(text)%>%
+ mutate(duplicated_event_id = duplicated(event_id, fromLast = TRUE),
+         duplicated_time = duplicated(time) | duplicated(time, fromLast = TRUE)) %>%
+  ungroup()%>%
+   filter(!duplicated_event_id)
+
+
+dta_140_nodup%>%
+
+  subset(trial_no == 61)%>%
+  ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_y_cor_pix )))+
+  geom_line()
+
+table(dta_140_nodup$trial_no)
+
+tmp_test<-dta_140_nodup%>%
+  subset(trial_no == 64)
+
+tmp_test_58<-dta_140_nodup%>%
+  subset(trial_no == 58)
+
+tmp_test
+
+
+
+# the event ids are in different r5anges for every conscutive sample
+
+tmp_test%>%
+  subset(as.numeric(event_id)> 15000)%>%
+  # subset(trial_no == 62)%>%
+  ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
+  geom_line()
+
+
+# tmp_test%>%
+#   subset(as.numeric(event_id)< 15000)%>%
+#   # subset(trial_no == 62)%>%
+#   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
+#   geom_line()
+colnames(tmp_test)
+head(tmp_test[,c(1,2:3,12:15)])
+
+# the data is clearly not the same
+# likelyu the evcents our of range are not data from thge actual stimuli
+tmp_test$time<-as.numeric(tmp_test$time)
+
+tmp_test%>%
+  
+  mutate(time_diff = time - lag(time))%>%
+  mutate(unk_sample = time_diff< .001)%>% # true is the weird one
+   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
+  geom_line()+
+  facet_grid(~unk_sample)+
+    geom_line(aes(y = left_gaze_y_cor_pix))  
+
+tmp_test%>%
+  
+  mutate(time_diff = time - lag(time))%>%
+  mutate(unk_sample = time_diff< .001)%>% # true is the weird one
+  subset(unk_sample == TRUE)%>%
+   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
+  geom_line()+
+  geom_line(aes(y = left_gaze_y_cor_pix))  
+
+tmp_test%>%
+  
+  mutate(time_diff = time - lag(time))%>%
+  mutate(unk_sample = time_diff< .001)%>% # true is the weird one
+  subset(unk_sample == FALSE)%>%
+   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
+  geom_line()+
+  geom_line(aes(y = left_gaze_y_cor_pix))  
+
+dta_4gazepath_stim$event_id<- as.numeric(dta_4gazepath_stim$event_id)
+  
+dta_4gazepath_stim<- dta_4gazepath_stim%>%
+  group_by(participant,trial_no)%>%
+  arrange(time)%>%
+  mutate(time1 = time, time2 = lead(time))%>%
+   mutate(time_diff = time1 -time2)%>%
+  
+   mutate(event_diff = event_id -lead(event_id))%>%
+ mutate(unk_sample = time_diff< .001,
+        unk_sample_ev = abs(event_diff)< 2,
+        )
+  
+
+
+tmp_test2<- dta_4gazepath_stim%>%
+  subset(  event_diff> 1)
+
+tmp_test2<- dta_4gazepath_stim%>%
+  subset(  event_diff< 2)
+
+table(tmp_test2$trial_no)
+
+table(tmp_test2$participant)
+
+unique(tmp_test2$participant)
+unique(tmp_test2$participant)
+
+tmp_test2<- dta_4gazepath_stim%>%
+  subset(  time_diff< .006)
+
+tmp_test3<-dta_4gazepath_stim%>%
+  subset(  time_diff> .006)
+
+table(tmp_test3$participant, tmp_test3$trial_no)
+  
+# dta_140_nodup<- tmp_test3%>%
+#   subset(ssid == "201")
+
+tmp_201<- dta_4gazepath_stim%>%
+  subset(ssid == "201")
+
+tmp_201_1<-  tmp_201%>% subset(  abs(time_diff)< .006)
+table(tmp_201_1$trial_no)
+
+# table(dta_140_nodup$trial_no)
+
+table(tmp_201$trial_no)
+```
+
+
+How to sort this, based on duplicate ID
