@@ -24,7 +24,7 @@ colnames(dta_4gazepath_stim)
 
 dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)] <- lapply(dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)], as.numeric)
 
-dta_4gazepath_stim$trial_no<-as.numeric(dta_4gazepath_stim$trial_no)
+# dta_4gazepath_stim$trial_no<-as.numeric(dta_4gazepath_stim$trial_no)
 
 dta_4gazepath_stim$trial_no<- as.factor(dta_4gazepath_stim$trial_no)
 unique(dta_4gazepath_stim$trial_no)
@@ -40,7 +40,7 @@ library(zoo)
 
 unique(dta_142$trial_no)
 
-
+unique(dta_140$text)
 ppt140 <- gazepath(dta_140, 
                    x1 = 17, y1 = 19, 
                    x2 = 18, y2 = 20,
@@ -76,17 +76,17 @@ plot.gazepath(ppt142, trial_index = 5)
 
 gp_ppt140<- summary.gazepath(ppt140)
 
-max(gp_ppt140$Duration)
+# max(gp_ppt140$Duration)
+# 
+# max(gp_ppt140$End)
 
-max(gp_ppt140$End)
 
+unique(dta_140$text)
 unique(gp_ppt140$text)
-range(dta_140$trial_no)
+# gp_ppt140
 
-dta_140$trial_no<- dta_140$trial_no-1
-dta_140$trial_no_gpid_stim[dta_140$trial_no==6]
 
-dta_140$trial_no[dta_140$stimnopath_no_na=="112.jpg"]
+dta_140$trial_no[dta_140$stimnopath_no_na=="111.jpg"]
 dta_140$trial_no[dta_140$stimnopath_no_na=="6300.jpg"]
 dta_140$trial_no[dta_140$stimnopath_no_na=="2457.jpg"]
 
@@ -103,8 +103,7 @@ dta_140%>%
   ggplot(aes(as.numeric(time), as.numeric(left_gaze_y_cor_pix )))+
   geom_line()
 
-# the extrtrial_no
-2457
+
 
 plot.gazepath(ppt140, trial_index = 6)
 plot.gazepath(ppt140, trial_index = 7)
@@ -113,6 +112,15 @@ plot.gazepath(ppt140, trial_index = 28)
 plot.gazepath(ppt140, trial_index = 50)
 
 ```
+
+TO DO
+checl the issues with formatiing and havign to crate a ,atrix of the datset
+checl the cumsum
+check the fucntions to store extra variables
+
+
+
+
 
 
 possibly sol;ve the duplicate issue earlier befroe eexporting to gazeptah, but chek here that thats the issue

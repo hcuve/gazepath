@@ -326,7 +326,174 @@ pnt.in.poly <- function(points, poly) {
 }
 
 
+## This function calculates the smooth for the precision function
+MFW <- function(x){
+  if(sum(is.na(x)) / length(x) > .5){
+    return(rep(NA, length(x)))
+  } else {
+    return(rep(median(x, na.rm = T), length(x)))
+  }
+}
 
+Speed <-
+  function(X, Y, distance, height_mm, width_mm, height_px, width_px, res_x = 1280, res_y = 1024, Hz){
+    d2p_px <- sqrt(abs(X - (res_x / 2))**2 + abs(Y - (res_y / 2))**2 + (distance * width_px / width_mm)**2)
+    dbp_px <- c(.001, sqrt(diff(X, 2)**2 + diff(Y, 2)**2), .001)
+    speed <- atan((dbp_px / 2) / d2p_px) * (180 / pi) * 2 * (Hz / 2)
+  }
+
+lomax <-
+  function(x){
+    which(diff(c(TRUE, diff(x) >= 0, FALSE)) < 0)
+  }
+
+
+
+Mould_vel <-
+  function(speed, Hz, plot = F){
+    lmax <- speed[lomax(speed)]
+    if(length(lmax) < 10){
+      return(NA)
+      warning('There are no enough data points to estimate a velocity threshold')
+    } else {
+      thresholds <- seq(min(lmax), max(lmax), length.out = Hz)
+      set <- sapply(thresholds, function(x) {length(which(lmax > x))})
+      uni <- seq(length(lmax), 0, length.out = Hz)
+      gap <- uni - set
+      
+      if(Hz < 250) {h <- .1} else {h <- .05}
+      
+      gap <- predict(loess( gap ~ log(thresholds) ,span = h))
+      while (length(lomax(gap)) > 1 & h < 1) {
+        h <- h + .01
+        gap <- predict(loess( (uni - set) ~ log(thresholds) ,span = h,  surface = 'direct', cell = 1))
+      }
+      
+      if(plot == T) plotMould(uni, set, gap, thresholds, lmax, Hz)
+      if(h != 1) return(thresholds[which.max(gap)]) else return(NA)
+    }
+  }
+
+
+
+######summary fuxcntion
+
+summary.gazepath <-
+  function(object, ..., complete_only = FALSE, fixations_only = FALSE){
+    output <- numeric()
+    end <- dim(object[[16]][[1]])[2]
+    for(i in 1:length(object[[16]])){
+      if(end == 4) end <- dim(object[[16]][[i]])[2]
+      sim <- object[[16]][[i]]
+      l <- length(which(sim[,1] == 'f'))
+      if(l != 0){
+        if(complete_only == TRUE){
+          if(fixations_only == TRUE){
+            index <- complete(sim, 'f')
+            if(length(index) != 0){
+              output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
+            }
+          } else {
+            if(length(which(sim[,1] == 's')) != 0){
+              index <- sort(c(complete(sim, 'f'), complete(sim, 's')))
+              if(length(index) != 0){
+                output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
+              }
+            } 
+          }
+        } else {
+          if(fixations_only == TRUE){
+            output <- rbind(output, cbind(sim[sim[,1] == 'f', c(1:4, 9:end)], 1:l, i))
+          } else {
+            l <- sum(sim[,1] == 'f' | sim[,1] == 's')
+            output <- rbind(output, cbind(sim[sim[,1] == 'f' | sim[,1] == 's',c(1:4, 9:end)], 1:l, i))
+          }
+        }
+      }
+    }
+    if(length(output) == 0){
+      print('There were no fixations or saccades classified, probably data quality of this particpant is very low')
+    } else {
+      names(output)[c(1:4,(end - 3):(end - 2))] <- c('Value', 'Duration', 'Start', 'End', 'Order', 'Trial')
+      row.names(output) <- 1:dim(output)[1]
+      return(output)
+    }
+  }
+
+# plotting
+
+plot.gazepath <-
+  function(x, ..., trial_index = 1){
+    i <- trial_index
+    object <- x
+    if(dim(object[[16]][[i]])[2] == 4){
+      warning('There is not enough data to identify fixations and saccades in this trial')
+    } else {
+      layout(matrix(c(1, 1:3), 2, 2))
+      plot(object[[2]][[i]], object[[3]][[i]], xlab = "X", ylab = 'Y', type = 'l', las = 1, ylim = c(max(object[[3]][[i]], na.rm = T), min(object[[3]][[i]], na.rm = T)))
+      sim <- object[[16]][[i]]
+      points(sim[sim[,1] == 'f', 9:10], pch = letters, cex = 3, col = 4)
+      
+      plot(object[[2]][[i]], ylim = c(-50, max(object[[14]][[i]], object[[12]][[i]]) + 100), type = 'l', xlab = 'Time (msec)', ylab = 'position', las = 1, xaxt = 'n', col = 5)
+      lines(object[[3]][[i]], col = 4)
+      axis(1, at = seq(0, length(object[[2]][[i]]), length.out = 6), labels = round(seq(0, length(object[[2]][[i]]) * (1000 / object[[10]]), length.out = 6)))
+      fix <- sim[sim[,1] == 'f',3:4] / (1000 / object[[10]])
+      rect(fix[,1], -50, fix[,2], 0, col = 3)
+      legend('topleft', c('X-coordinates', 'Y-coordinates', 'Fixations'), col = 5:3, lwd = 2, bty = 'n', horiz = TRUE)
+      
+      if(object[[4]] != 'Tobii' & object[[4]] != 'Eyelink'){
+        plot(object[[9]][[i]], typ = 'l', xlab = 'Time (msec)', ylab = 'Speed (deg/s)', las = 1, xaxt = 'n')
+        axis(1, at = seq(0, length(object[[9]][[i]]), length.out = 6), labels = round(seq(0, length(object[[9]][[i]]) * (1000 / object[[10]]), length.out = 6)))
+        if(object[[4]] == 'Mould.all' | object[[4]] == 'Mould.allDur'){
+          segments(0, object[[7]], length(object[[9]][[i]]), object[[7]], col = 2, lwd= 2)
+        } else {
+          segments(0, object[[7]][[i]], length(object[[9]][[i]]), object[[7]][[i]], col = 2, lwd= 2)
+        }
+      }
+    }
+    layout(1)
+  }
+
+
+
+
+## Combine succesive fixations based on region, overlapping fixations are combined
+comhull <- function(d, classification, dat_x, dat_y, in_thres, Hz = Hz, M, D, res_x = res_x, width_mm = width_mm){
+  d <- d[d$dur > 1,]
+  fix <- tail(which(d$index == 'fixation'), 1)
+  count <- length(which(d$index == 'fixation')) - 1
+  while(count >= 1){
+    fix2 <- which(d$index == 'fixation')[count]
+    cvhull <- chull(cbind(dat_x, dat_y)[d[fix,3] : d[fix,4],])
+    POLY_FIX <- cbind(dat_x[d[fix,3] : d[fix,4]][cvhull], dat_y[d[fix,3] : d[fix,4]][cvhull])
+    PNT <- sum(pnt.in.poly(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], POLY_FIX)[,3])
+    ## If fixations have the same location, are within interpolation limit and below distance limit combine them.
+    if(PNT != 0){
+      dis <- dist(rbind(t(apply(cbind(dat_x, dat_y)[d[fix,3] : d[fix,4],], 2, mean)),
+                        t(apply(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], 2, mean))))
+      thres_d <- atan((width_mm/2)/D) * (180/pi) * 2 *(dis/res_x)
+      if(thres_d < M & (d[fix,3] - d[fix2,4]) < in_thres * (Hz / 1000)){
+        classification[d[fix2,3] : d[fix,4]] <- 'fixation'
+        CL <- rle(classification)
+        index <- rep.int(1:length(CL$value), CL$lengths)
+        POG <- sapply(unique(index[!is.na(index)]), function(i) mean(dist(cbind(dat_x[index == i], dat_y[index == i])), na.rm = T))
+        POG[is.na(POG)] <- 0
+        mean_x <- as.vector(by(dat_x, index, function(i) mean(i, na.rm = T)))
+        mean_y <- as.vector(by(dat_y, index, function(i) mean(i, na.rm = T)))
+        
+        dat_x[d[fix2,3] : d[fix,4]] <- na.approx(dat_x[d[fix2,3] : d[fix,4]])
+        dat_y[d[fix2,3] : d[fix,4]] <- na.approx(dat_y[d[fix2,3] : d[fix,4]])
+        
+        d <- data.frame(CL$value, CL$length, c(1, cumsum(CL$length)[-length(CL$length)] + 1), cumsum(CL$length), POG, mean_x, mean_y)
+        names(d)[1:4] <- c('index', 'dur', 'start', 'end')
+        d <- d[d$dur > 1,]
+      } 
+    }
+    fix <- fix2
+    count <- count - 1
+  }
+  return(list(classification, dat_x, dat_y))
+}
 
 
 

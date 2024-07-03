@@ -183,5 +183,8 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
   return(output)
 }
 
-
+TO DO
+checl the issues with formatiing and havign to crate a ,atrix of the datset
+checl the cumsum
+check the fucntions to store extra variables
 
