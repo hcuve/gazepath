@@ -245,65 +245,102 @@ posthocCheck <- function(classification, x, y) {
 }
 
 
-simplify <- function(classification, x, y, Hz, D, width_px, width_mm, extra, extra_var) {
-  # Run-length encode the classification vector
-  class <- rle(classification)
-  
-  # Create a data frame summarizing the run-length encoding
-  simple <- data.frame(class$values, class$lengths, 
-                       c(1, cumsum(class$lengths) + 1)[-(length(class$values) + 1)], 
-                       cumsum(class$lengths))
-  
-  # If there are any fixations
-  if(length(which(class$values == 'f')) > 0) {
-    # Initialize vectors for start and end positions, mean positions, POG variability, and RMS
-    x_start <- y_start <- x_end <- y_end <- mean_x <- mean_y <- POGvar <- RMS <- numeric()
-    
-    # Iterate through each segment to calculate start, end, and mean positions
-    for(i in 1:dim(simple)[1]) {
-      x_start <- c(x_start, x[simple[i, 3]])
-      y_start <- c(y_start, y[simple[i, 3]])
-      x_end <- c(x_end, x[simple[i, 4]])
-      y_end <- c(y_end, y[simple[i, 4]])
-      mean_x <- c(mean_x, mean(x[simple[i, 3] : simple[i, 4]]))
-      mean_y <- c(mean_y, mean(y[simple[i, 3] : simple[i, 4]]))
-      m <- as.matrix(dist(cbind(c(mean_x[length(mean_x)], x[simple[i, 3] : simple[i, 4]]), c(mean_y[length(mean_y)], y[simple[i, 3] : simple[i, 4]]))))
-      RMS <- c(RMS, sqrt(mean((atan((diag(m[-1, -c(1, 2)]) / 2) / mean(D, na.rm = TRUE)) * (180 / pi) * (width_mm / width_px) * 2) ** 2)))
-      POGvar <- c(POGvar, mean(m[-1, 1]))
-    }
-    
-    ## Calculate saccade amplitude and transform POGvar from pixels to degrees of visual angle and to standard deviation
-    ss <- which(class$values == 's')
-    POGvar[ss] <- sqrt((x_start[ss] - x_end[ss]) ^ 2 + (y_start[ss] - y_end[ss]) ^ 2)
-    POGsdSacAmp <- atan((POGvar / 2) / mean(D, na.rm = TRUE)) * (180 / pi) * (width_mm / width_px) * 2
-    POGsdSacAmp[!ss] <- sqrt(POGsdSacAmp)
-    RMS[ss] <- NA
-    
-    # Update the simple data frame with calculated metrics
-    simple <- data.frame(class$values, class$lengths * (1000 / Hz), 
-                         c(1, cumsum(class$lengths * (1000 / Hz)) + 1)[-(length(class$values) + 1)], 
-                         cumsum(class$lengths * (1000 / Hz)), x_start, y_start, x_end, y_end, mean_x, mean_y, POGsdSacAmp, RMS)
-    names(simple)[1:4] <- c('Value', 'Dur', 'Start', 'End')
-    
-    # Include additional variables if specified
-    if(!is.null(extra_var)) {
-      for(i in 1:length(extra_var)) {
-        simple <- data.frame(simple, extra[i])
-        names(simple)[dim(simple)[2]] <- extra_var[i]
+# ORIOGINAL;
+
+simplify <-
+  function(classification, x, y, Hz, D, width_px, width_mm, extra, extra_var){
+    class <- rle(classification)
+    simple <- data.frame(class$values, class$lengths, 
+                         c(1, cumsum(class$lengths) + 1)[-(length(class$values) + 1)], 
+                         cumsum(class$lengths))
+    if(length(which(class$values == 'f')) > 0){
+      x_start <- y_start <- x_end <- y_end <- mean_x <- mean_y <- POGvar <- RMS <- numeric()
+      for(i in 1:dim(simple)[1]){
+        x_start <- c(x_start, x[simple[i, 3]])
+        y_start <- c(y_start, y[simple[i, 3]])
+        x_end <- c(x_end, x[simple[i, 4]])
+        y_end <- c(y_end, y[simple[i, 4]])
+        mean_x <- c(mean_x, mean(x[simple[i,3] : simple[i,4]]))
+        mean_y <- c(mean_y, mean(y[simple[i,3] : simple[i,4]]))
+        m <- as.matrix(dist(cbind(c(mean_x[length(mean_x)], x[simple[i,3] : simple[i,4]]), c(mean_y[length(mean_y)], y[simple[i,3] : simple[i,4]]))))
+        RMS <- c(RMS, sqrt(mean((atan((diag(m[-1,-c(1,2)]) / 2) / mean(D, na.rm = T)) * (180 / pi) * (width_mm / width_px) * 2)**2)))
+        POGvar <- c(POGvar, mean(m[-1,1]))
+      }
+      ## Calculate saccade amplitude and transform POGvar from pixels to degrees of visual angle and to sd
+      ss <- which(class$values == 's')
+      POGvar[ss] <- sqrt((x_start[ss] - x_end[ss]) ^ 2 + (y_start[ss] - y_end[ss]) ^ 2)
+      POGsdSacAmp <- atan((POGvar / 2) / mean(D, na.rm = T)) * (180 / pi) * (width_mm / width_px) * 2
+      POGsdSacAmp[!ss] <- sqrt(POGsdSacAmp)
+      RMS[ss] <- NA
+      
+      simple <- data.frame(class$values, class$lengths * (1000/Hz), 
+                           c(1, cumsum(class$lengths * (1000/Hz)) + 1)[-(length(class$values) + 1)], 
+                           cumsum(class$lengths * (1000/Hz)), x_start, y_start, x_end, y_end, mean_x, mean_y, POGsdSacAmp, RMS)
+      names(simple)[1:4] <- c('Value', 'Dur', 'Start', 'End')
+      if(!is.null(extra_var)){
+        for(i in 1:length(extra_var)){
+          simple <- data.frame(simple, extra[i])
+          names(simple)[dim(simple)[2]] <- extra_var[i]
+        }
       }
     }
+    # Remove NA values
+    if(length(which(is.na(simple[,1]))) != 0){
+      simple <- simple[-which(is.na(simple[,1])),]
+    }
+    return(simple)
   }
-  
-  # Remove rows with NA values in the first column
-  if(length(which(is.na(simple[, 1]))) != 0) {
-    simple <- simple[-which(is.na(simple[, 1])), ]
+
+
+comhull<-
+function(d, classification, dat_x, dat_y, in_thres, Hz = Hz, M, D, res_x = res_x, width_mm = width_mm){
+  d <- d[d$dur > 1,]
+  fix <- tail(which(d$index == 'fixation'), 1)
+  count <- length(which(d$index == 'fixation')) - 1
+  while(count >= 1){
+    fix2 <- which(d$index == 'fixation')[count]
+    cvhull <- chull(cbind(dat_x, dat_y)[d[fix,3] : d[fix,4],])
+    POLY_FIX <- cbind(dat_x[d[fix,3] : d[fix,4]][cvhull], dat_y[d[fix,3] : d[fix,4]][cvhull])
+    
+    # Debug print statements
+    # print("Dimensions of points:")
+    # print(dim(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],]))
+    # print("Dimensions of polygon:")
+    # print(dim(POLY_FIX))
+    
+    # Modified line to use the updated pnt.in.poly function
+    PNT <- sum(pnt.in.poly(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], POLY_FIX), na.rm = TRUE)
+    
+    # print("PNT value:")
+    # print(PNT)
+    # 
+    ## If fixations have the same location, are within interpolation limit and below distance limit combine them.
+    if(!is.na(PNT) && PNT != 0){
+      dis <- dist(rbind(t(apply(cbind(dat_x, dat_y)[d[fix,3] : d[fix,4],], 2, mean)),
+                        t(apply(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], 2, mean))))
+      thres_d <- atan((width_mm/2)/D) * (180/pi) * 2 *(dis/res_x)
+      if(thres_d < M & (d[fix,3] - d[fix2,4]) < in_thres * (Hz / 1000)){
+        classification[d[fix2,3] : d[fix,4]] <- 'fixation'
+        CL <- rle(classification)
+        index <- rep.int(1:length(CL$value), CL$lengths)
+        POG <- sapply(unique(index[!is.na(index)]), function(i) mean(dist(cbind(dat_x[index == i], dat_y[index == i])), na.rm = T))
+        POG[is.na(POG)] <- 0
+        mean_x <- as.vector(by(dat_x, index, function(i) mean(i, na.rm = T)))
+        mean_y <- as.vector(by(dat_y, index, function(i) mean(i, na.rm = T)))
+        
+        dat_x[d[fix2,3] : d[fix,4]] <- na.approx(dat_x[d[fix2,3] : d[fix,4]])
+        dat_y[d[fix2,3] : d[fix,4]] <- na.approx(dat_y[d[fix2,3] : d[fix,4]])
+        
+        d <- data.frame(CL$value, CL$length, c(1, cumsum(CL$length)[-length(CL$length)] + 1), cumsum(CL$length), POG, mean_x, mean_y)
+        names(d)[1:4] <- c('index', 'dur', 'start', 'end')
+        d <- d[d$dur > 1,]
+      } 
+    }
+    fix <- fix2
+    count <- count - 1
   }
-  
-  return(simple)
+  return(list(classification, dat_x, dat_y))
 }
-
-
-#
 
 pnt.in.poly <- function(points, poly) {
   # Ensure the input points and polygon are in the right format
@@ -378,47 +415,104 @@ Mould_vel <-
 
 ######summary fuxcntion
 
-summary.gazepath <-
-  function(object, ..., complete_only = FALSE, fixations_only = FALSE){
-    output <- numeric()
-    end <- dim(object[[16]][[1]])[2]
-    for(i in 1:length(object[[16]])){
-      if(end == 4) end <- dim(object[[16]][[i]])[2]
-      sim <- object[[16]][[i]]
-      l <- length(which(sim[,1] == 'f'))
-      if(l != 0){
-        if(complete_only == TRUE){
-          if(fixations_only == TRUE){
-            index <- complete(sim, 'f')
+# summary.gazepath <-
+#   function(object, ..., complete_only = FALSE, fixations_only = FALSE){
+#     output <- numeric()
+#     end <- dim(object[[16]][[1]])[2]
+#     for(i in 1:length(object[[16]])){
+#       if(end == 4) end <- dim(object[[16]][[i]])[2]
+#       sim <- object[[16]][[i]]
+#       l <- length(which(sim[,1] == 'f'))
+#       if(l != 0){
+#         if(complete_only == TRUE){
+#           if(fixations_only == TRUE){
+#             index <- complete(sim, 'f')
+#             if(length(index) != 0){
+#               output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
+#             }
+#           } else {
+#             if(length(which(sim[,1] == 's')) != 0){
+#               index <- sort(c(complete(sim, 'f'), complete(sim, 's')))
+#               if(length(index) != 0){
+#                 output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
+#               }
+#             } 
+#           }
+#         } else {
+#           if(fixations_only == TRUE){
+#             output <- rbind(output, cbind(sim[sim[,1] == 'f', c(1:4, 9:end)], 1:l, i))
+#           } else {
+#             l <- sum(sim[,1] == 'f' | sim[,1] == 's')
+#             output <- rbind(output, cbind(sim[sim[,1] == 'f' | sim[,1] == 's',c(1:4, 9:end)], 1:l, i))
+#           }
+#         }
+#       }
+#     }
+#     if(length(output) == 0){
+#       print('There were no fixations or saccades classified, probably data quality of this particpant is very low')
+#     } else {
+#       names(output)[c(1:4,(end - 3):(end - 2))] <- c('Value', 'Duration', 'Start', 'End', 'Order', 'Trial')
+#       row.names(output) <- 1:dim(output)[1]
+#       return(output)
+#     }
+#   }
+
+# SYUMAMRYU THAT INDICATES TRUIAKLS WITH NO FIXATIONS
+summary.gazepath <- function(object, ..., complete_only = FALSE, fixations_only = FALSE){
+  output <- numeric()
+  end <- dim(object[[16]][[1]])[2]
+  no_fixation_trials <- c()
+  
+  for(i in 1:length(object[[16]])){
+    if(end == 4) end <- dim(object[[16]][[i]])[2]
+    sim <- object[[16]][[i]]
+    l <- length(which(sim[,1] == 'f'))
+    
+    if(l == 0){
+      no_fixation_trials <- c(no_fixation_trials, i)
+    } else {
+      if(complete_only == TRUE){
+        if(fixations_only == TRUE){
+          index <- complete(sim, 'f')
+          if(length(index) != 0){
+            output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
+          }
+        } else {
+          if(length(which(sim[,1] == 's')) != 0){
+            index <- sort(c(complete(sim, 'f'), complete(sim, 's')))
             if(length(index) != 0){
               output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
             }
-          } else {
-            if(length(which(sim[,1] == 's')) != 0){
-              index <- sort(c(complete(sim, 'f'), complete(sim, 's')))
-              if(length(index) != 0){
-                output <- rbind(output, cbind(sim[index, c(1:4, 9:end)], 1:length(index), i))
-              }
-            } 
-          }
+          } 
+        }
+      } else {
+        if(fixations_only == TRUE){
+          output <- rbind(output, cbind(sim[sim[,1] == 'f', c(1:4, 9:end)], 1:l, i))
         } else {
-          if(fixations_only == TRUE){
-            output <- rbind(output, cbind(sim[sim[,1] == 'f', c(1:4, 9:end)], 1:l, i))
-          } else {
-            l <- sum(sim[,1] == 'f' | sim[,1] == 's')
-            output <- rbind(output, cbind(sim[sim[,1] == 'f' | sim[,1] == 's',c(1:4, 9:end)], 1:l, i))
-          }
+          l <- sum(sim[,1] == 'f' | sim[,1] == 's')
+          output <- rbind(output, cbind(sim[sim[,1] == 'f' | sim[,1] == 's',c(1:4, 9:end)], 1:l, i))
         }
       }
     }
-    if(length(output) == 0){
-      print('There were no fixations or saccades classified, probably data quality of this particpant is very low')
-    } else {
-      names(output)[c(1:4,(end - 3):(end - 2))] <- c('Value', 'Duration', 'Start', 'End', 'Order', 'Trial')
-      row.names(output) <- 1:dim(output)[1]
-      return(output)
-    }
   }
+  
+  if(length(output) == 0){
+    print('There were no fixations or saccades classified, probably data quality of this participant is very low')
+  } else {
+    names(output)[c(1:4,(end - 3):(end - 2))] <- c('Value', 'Duration', 'Start', 'End', 'Order', 'Trial')
+    row.names(output) <- 1:dim(output)[1]
+    
+    # Print trials with no fixations
+    if(length(no_fixation_trials) > 0) {
+      cat("Trials with no detectable fixations:", paste(no_fixation_trials, collapse = ", "), "\n")
+    } else {
+      cat("All trials contained detectable fixations.\n")
+    }
+    
+    return(output)
+  }
+}
+
 
 # plotting
 
@@ -458,6 +552,10 @@ plot.gazepath <-
 
 
 ## Combine succesive fixations based on region, overlapping fixations are combined
+
+
+#######
+
 comhull <- function(d, classification, dat_x, dat_y, in_thres, Hz = Hz, M, D, res_x = res_x, width_mm = width_mm){
   d <- d[d$dur > 1,]
   fix <- tail(which(d$index == 'fixation'), 1)
@@ -466,9 +564,21 @@ comhull <- function(d, classification, dat_x, dat_y, in_thres, Hz = Hz, M, D, re
     fix2 <- which(d$index == 'fixation')[count]
     cvhull <- chull(cbind(dat_x, dat_y)[d[fix,3] : d[fix,4],])
     POLY_FIX <- cbind(dat_x[d[fix,3] : d[fix,4]][cvhull], dat_y[d[fix,3] : d[fix,4]][cvhull])
-    PNT <- sum(pnt.in.poly(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], POLY_FIX)[,3])
+    
+    # Debug print statements
+    # print("Dimensions of points:")
+    # print(dim(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],]))
+    # print("Dimensions of polygon:")
+    # print(dim(POLY_FIX))
+    
+    # Modified line to use the updated pnt.in.poly function
+    PNT <- sum(pnt.in.poly(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], POLY_FIX), na.rm = TRUE)
+    
+    # print("PNT value:")
+    # print(PNT)
+    # 
     ## If fixations have the same location, are within interpolation limit and below distance limit combine them.
-    if(PNT != 0){
+    if(!is.na(PNT) && PNT != 0){
       dis <- dist(rbind(t(apply(cbind(dat_x, dat_y)[d[fix,3] : d[fix,4],], 2, mean)),
                         t(apply(cbind(dat_x, dat_y)[d[fix2,3] : d[fix2,4],], 2, mean))))
       thres_d <- atan((width_mm/2)/D) * (180/pi) * 2 *(dis/res_x)
@@ -496,6 +606,25 @@ comhull <- function(d, classification, dat_x, dat_y, in_thres, Hz = Hz, M, D, re
 }
 
 
+pnt.in.poly <- function(points, poly) {
+  # Ensure the input points and polygon are in the right format
+  points <- as.matrix(points)
+  poly <- as.matrix(poly)
+  
+  # Create the polygon object
+  polygon <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(poly)), ID = 1)))
+  
+  # Create the points object
+  points <- sp::SpatialPoints(points)
+  
+  # Check which points are inside the polygon
+  inside <- sp::over(points, polygon, returnList = FALSE)
+  
+  # Convert the result to a matrix with one column
+  inside <- matrix(as.numeric(inside), ncol = 1)
+  
+  return(inside)
+}
 
 
 

@@ -40,36 +40,20 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
     warning('The trial index in the data frame was not unique, therefore trials are renamed to be unique and the old trial index is stored in the data as TRIAL_OLD')
   }
   
-  ## Find extra variables to pass through if specified
-  # extra <- list()
-  # if(!is.null(extra_var)){
-  #   if(sum(extra_var %in% names(data)) == length(extra_var)){
-  #     for(i in unique(data[,trial])){
-  #       extra[[i]] <- sapply(1:length(extra_var), function(j) head(as.character(data[data[,trial] == i, which(names(data) == extra_var[j])]), 1))
-  #     }
-  #   } else {
-  #     extra_var <- NULL
-  #     print('Please make sure the variables to pass through have the correct names')
-  #   }
-  # }
-  
-  
-  ## Find extra variables to pass through if specified
+  ## find extra variables ORIGINAL
   extra <- list()
-  if (!is.null(extra_var)) {
-    if (sum(extra_var %in% names(data)) == length(extra_var)) {
-      extra <- lapply(unique(data[, trial]), function(i) {
-        sapply(extra_var, function(j) {
-          values <- data[data[, trial] == i, j]
-          rep(values[1], length(values))  # Repeat the first value to match the length
-        })
-      })
-      extra <- do.call(rbind, extra)  # Combine into a single data frame
+  
+  if(!is.null(extra_var)){
+    if(sum(extra_var %in% names(data)) == length(extra_var)){
+      for(i in unique(data[,trial])){
+        extra[[i]] <- sapply(1:length(extra_var), function(j) head(as.character(data[data[,trial] == i, which(names(data) == extra_var[j])]), 1))
+      }
     } else {
       extra_var <- NULL
       print('Please make sure the variables to pass through have the correct names')
     }
   }
+  
   
   ## Check and filter distance data
   data[,d1] <- ifelse(data[,d1] < min_dist, NA, data[,d1])
@@ -170,8 +154,10 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
   ## Simplify the raw classification
   sim <- list()
   for(i in 1:length(X)){
+    # sim[[i]] <- simplify(final[[i]], X[[i]], Y[[i]], samplerate, D[[i]], width_px[i], width_mm[i], extra[[i]], extra_var)
     sim[[i]] <- simplify(final[[i]], X[[i]], Y[[i]], samplerate, D[[i]], width_px[i], width_mm[i], extra[[i]], extra_var)
-  }
+  
+    }
   
   ## Compile the output list
   output <- list(final, X, Y, method, Robustness, Precision, thres_vel, thres_dur, s, samplerate, D, height_px, height_mm, width_px, width_mm, sim)
@@ -183,8 +169,5 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
   return(output)
 }
 
-TO DO
-checl the issues with formatiing and havign to crate a ,atrix of the datset
-checl the cumsum
-check the fucntions to store extra variables
+
 
