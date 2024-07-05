@@ -24,16 +24,16 @@ colnames(dta_4gazepath_stim)
 dta_4gazepath_stim
 dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)] <- lapply(dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)], as.numeric)
 
-# dta_4gazepath_stim$trial_no<-as.numeric(dta_4gazepath_stim$trial_no)
-
 dta_4gazepath_stim$trial_no<- as.factor(dta_4gazepath_stim$trial_no)
 unique(dta_4gazepath_stim$trial_no)
 
-dta_142<- dta_4gazepath_stim%>%
-  subset(ssid =="142")
+
 
 dta_140<- dta_4gazepath_stim%>%
   subset(ssid =="140")
+
+dta_142<- dta_4gazepath_stim%>%
+  subset(ssid =="142")
 
 library(zoo)
 
@@ -41,7 +41,94 @@ library(zoo)
 unique(dta_142$trial_no)
 
 unique(dta_140$text)
+# dta_4gazepath_stim1
 
+
+
+
+library(gazepath)
+library(dplyr)
+
+# Split the data by participant
+tmp_stim_by_pp <- split(dta_4gazepath_stim, dta_4gazepath_stim$participant)
+
+
+
+
+
+# Initialize an empty list to store gazepath results
+gazepath_results <- list()
+
+# Initialize an empty dataframe to store summary results
+gp_summary_results <- data.frame()
+# tmp_stim_by_pp$`208`
+# Loop through each participant's data
+for (participant_id in names(tmp_stim_by_pp)) {
+  # Get the data for the current participant
+  # dta <- tmp_stim_by_pp[[209]]
+  dta <- tmp_stim_by_pp[[participant_id]]
+  # Check if the trial column exists and has values
+  # dta$trial_no
+  if (!"trial_no" %in% colnames(dta) || all(is.na(dta$trial_no))) {
+    warning(paste("Skipping participant", participant_id, "due to missing or empty 'trial' column"))
+    next
+  }
+  
+  # Ensure the trial column is properly formatted
+  dta$trial_no <- as.factor(as.numeric(as.character(dta$trial_no)))
+  
+  # Run the gazepath analysis
+  rslt_gp_stim <- gazepath(dta, 
+                           x1 = 17, y1 = 19, 
+                           x2 = 18, y2 = 20,
+                           d1 = 23, d2 = 23,
+                           trial = 28, # Ensure this is a character or factor
+                           height_px = 1080, height_mm = 295,
+                           width_px = 1920, width_mm = 525,
+                           extra_var = c("text", "trial_no", "trial_no_gpid_stim", "stimnopath_no_na", "participant"),
+                           method = 'gazepath',
+                           samplerate = 150)
+  
+  # Append the gazepath result to the list
+  gazepath_results[[participant_id]] <- rslt_gp_stim
+  
+  # Run the summary analysis
+  rslt_fix_sacc_gp <- summary.gazepath(rslt_gp_stim)
+  
+  # Bind the summary results into the dataframe
+  gp_summary_results <- bind_rows(gp_summary_results, rslt_fix_sacc_gp)
+}
+
+# Save gazepath results to an RDS file
+saveRDS(gazepath_results, "gazepath_results.rds")
+
+saveRDS(gp_summary_results, "gp_summary_results.rds")
+
+
+
+tmp_stim_by_pp$`140`%>%
+  subset(trial_no == 6)%>%
+  ggplot(aes(as.numeric(timerezero), as.numeric(gaze_x_cor_pix)))+
+  geom_line()+
+  geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
+
+
+plot.gazepath(gazepath_results$`140`, trial_index = 6)
+
+
+tmp_stim_by_pp$`208`%>%
+  subset(trial_no == 6)%>%
+  ggplot(aes(as.numeric(timerezero), as.numeric(gaze_x_cor_pix)))+
+  geom_line()+
+  geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
+
+
+plot.gazepath(gazepath_results$`208`, trial_index = 6)
+
+
+```
+
+```{r}
 
 ppt140 <- gazepath(dta_140, 
                    x1 = 17, y1 = 19, 
@@ -61,24 +148,82 @@ ppt140 <- gazepath(dta_140,
 
 
 
+gp_ppt140<- summary.gazepath(ppt140)
+plot.gazepath(gp_ppt140, trial_index = 64)
+
+dta_208<- dta_4gazepath_stim%>%
+  subset(ssid == 208)
+unique(dta_208$trial_no)
 
 
-table(dta_140$trial_no, dta_140$gaze_valid_prop)
+dta_208$trial_no<- as.factor(as.numeric(as.character(dta_208$trial_no)))
+
+ppt208 <- gazepath(dta_208, 
+                   x1 = 17, y1 = 19, 
+                   x2 = 18, y2 = 20,
+                   d1 = 23, d2 = 23,
+                   trial = 28, # Ensure this is a character or factor
+                   height_px = 1080, height_mm = 295,
+                   width_px = 1920, width_mm = 525,
+                   extra_var = c( "text","trial_no","trial_no_gpid_stim","stimnopath_no_na","participant"),
+              
+                   #rror in data.frame(simple, extra[i]) : 
+                   # arguments imply differing number of rows: 345, 0 
+                   # is related to etxra var
+                   method = 'gazepath',
+                   samplerate = 150)
+
+
+```
+
+
 
 dta_140%>%
   # subset(as.numeric(trial_no)>56)%>%
   ggplot(aes(trial_no, gaze_valid_prop))+
   geom_point()
 
-
+```{r}
 dta_140%>%
   subset(as.numeric(trial_no)==24)%>%
   ggplot(aes(as.numeric(timerezero), as.numeric(gaze_x_cor_pix)))+
   geom_line()+
   geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
 
+unique(dta_4gazepath_stim$trial_no)
+
+
+tmp_208<- dta_4gazepath_stim%>%
+  subset(ssid == 208)
+
+
+unique(tmp_208$trial_no)
+
+dta_4gazepath_stim%>%
+  subset(ssid == 208)%>%
+  subset(as.numeric(trial_no)==47) %>%
+  ggplot(aes(as.numeric(timerezero), as.numeric(gaze_x_cor_pix)))+
+  geom_line()+
+  geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
+
+
+
+dta_4gazepath_stim%>%
+  subset(ssid == 208)%>%
+  # subset(as.numeric(trial_no)==20)%>%
+  ggplot(aes(as.numeric(trial_no), as.numeric(gaze_valid_prop)))+
+  geom_point()
+  ggplot(aes(as.numeric(timerezero), as.numeric(gaze_x_cor_pix)))+
+  geom_line()+
+  geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
+
+
+
+```
 
 plot.gazepath(ppt140, trial_index = 24)
+
+plot.gazepath(ppt142, trial_index = 64)
 
 # Checked multiple trials and seems to be working, but a few trials have unexpectedly long durations, likely due to issues with collection, so we should filter these at some point.
 
@@ -121,11 +266,13 @@ unique(gp_ppt140$Trial)
 gp_ppt140%>%subset(Trial== 60)
 ```
 
-dta_142$text<- as.character(dta_142$text)
-dta_142$trial_no_gpid_stim<- as.character(dta_142$trial_no_gpid_stim)
-dta_142$trial_no<- as.character(dta_142$trial_no)
-dta_142$stimnopath_no_na<- as.character(dta_142$stimnopath_no_na)
-dta_142$participant<- as.character(dta_142$participant)
+
+```{r}
+# dta_142$text<- as.character(dta_142$text)
+# dta_142$trial_no_gpid_stim<- as.character(dta_142$trial_no_gpid_stim)
+# dta_142$trial_no<- as.character(dta_142$trial_no)
+# dta_142$stimnopath_no_na<- as.character(dta_142$stimnopath_no_na)
+# dta_142$participant<- as.character(dta_142$participant)
 
 ppt142 <- gazepath(dta_142, 
                    x1 = 17, y1 = 19, 
@@ -139,7 +286,7 @@ ppt142 <- gazepath(dta_142,
                    samplerate = 150)
 
 
-ppt142
+
 
 gp_ppt142<- summary.gazepath(ppt142)
 
@@ -150,193 +297,32 @@ unique(gp_ppt142$stimnopath_no_na)
 
 
 gp_ppt142$text[gp_ppt142$Trial == 5]
-gp_ppt142$
-# unique(gp_ppt142$)
-plot.gazepath(ppt142, trial_index = 5)
-
-
-gp_ppt140<- summary.gazepath(ppt140)
-
-# max(gp_ppt140$Duration)
-# 
-# max(gp_ppt140$End)
-
-
-unique(dta_140$text)
-unique(gp_ppt140$text)
-# gp_ppt140
-
-
-dta_140$trial_no[dta_140$stimnopath_no_na=="111.jpg"]
-dta_140$trial_no[dta_140$stimnopath_no_na=="6300.jpg"]
-dta_140$trial_no[dta_140$stimnopath_no_na=="2457.jpg"]
-
-table(dta_140$trial_no)
-length(unique(dta_140$text))
-length(unique(gp_ppt140$Trial))
-# one less probably because not enough hgaze for parsiong
-
-length(unique(dta_142$text))
-length(unique(gp_ppt142$Trial))
-
-dta_140%>%
-  subset(trial_no == 62)%>%
-  ggplot(aes(as.numeric(time), as.numeric(left_gaze_y_cor_pix )))+
-  geom_line()
+gp_ppt142$stimnopath_no_na
 
 
 
-plot.gazepath(ppt140, trial_index = 6)
-plot.gazepath(ppt140, trial_index = 7)
-plot.gazepath(ppt140, trial_index = 28)
+dta_142%>%
+  subset(as.numeric(trial_no)==64)%>%
+  ggplot(aes(as.numeric(timerezero), as.numeric(gaze_x_cor_pix)))+
+  geom_line()+
+  geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
 
-plot.gazepath(ppt140, trial_index = 50)
+
+plot.gazepath(ppt142, trial_index = 64)
+
+# Checked multiple trials and seems to be working, but a few trials have unexpectedly long durations, likely due to issues with collection, so we should filter these at some point.
+
+
+
 
 ```
 
 TO DO
-checl the issues with formatiing and havign to crate a ,atrix of the datset
-checl the cumsum
-check the fucntions to store extra variables
+<!-- check the issues with formating of the data and having to create a matrix of the datset -->
+<!-- check the cumsum? why> -->
 
 
 
 
 
 
-possibly sol;ve the duplicate issue earlier befroe eexporting to gazeptah, but chek here that thats the issue
-
-```{r}
-
-dta_140$event_id
-
-
-dta_140$event_id<- as.numeric(dta_140$event_id)
-dta_140$time<- as.numeric(dta_140$time)
-
-dta_140_nodup<- dta_140%>%
-  # group_by(text)%>%
- mutate(duplicated_event_id = duplicated(event_id, fromLast = TRUE),
-         duplicated_time = duplicated(time) | duplicated(time, fromLast = TRUE)) %>%
-  ungroup()%>%
-   filter(!duplicated_event_id)
-
-
-dta_140_nodup%>%
-
-  subset(trial_no == 61)%>%
-  ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_y_cor_pix )))+
-  geom_line()
-
-table(dta_140_nodup$trial_no)
-
-tmp_test<-dta_140_nodup%>%
-  subset(trial_no == 64)
-
-tmp_test_58<-dta_140_nodup%>%
-  subset(trial_no == 58)
-
-tmp_test
-
-
-
-# the event ids are in different r5anges for every conscutive sample
-
-tmp_test%>%
-  subset(as.numeric(event_id)> 15000)%>%
-  # subset(trial_no == 62)%>%
-  ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
-  geom_line()
-
-
-# tmp_test%>%
-#   subset(as.numeric(event_id)< 15000)%>%
-#   # subset(trial_no == 62)%>%
-#   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
-#   geom_line()
-colnames(tmp_test)
-head(tmp_test[,c(1,2:3,12:15)])
-
-# the data is clearly not the same
-# likelyu the evcents our of range are not data from thge actual stimuli
-tmp_test$time<-as.numeric(tmp_test$time)
-
-tmp_test%>%
-  
-  mutate(time_diff = time - lag(time))%>%
-  mutate(unk_sample = time_diff< .001)%>% # true is the weird one
-   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
-  geom_line()+
-  facet_grid(~unk_sample)+
-    geom_line(aes(y = left_gaze_y_cor_pix))  
-
-tmp_test%>%
-  
-  mutate(time_diff = time - lag(time))%>%
-  mutate(unk_sample = time_diff< .001)%>% # true is the weird one
-  subset(unk_sample == TRUE)%>%
-   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
-  geom_line()+
-  geom_line(aes(y = left_gaze_y_cor_pix))  
-
-tmp_test%>%
-  
-  mutate(time_diff = time - lag(time))%>%
-  mutate(unk_sample = time_diff< .001)%>% # true is the weird one
-  subset(unk_sample == FALSE)%>%
-   ggplot(aes(as.numeric(timerezero), as.numeric(left_gaze_x_cor_pix )))+
-  geom_line()+
-  geom_line(aes(y = left_gaze_y_cor_pix))  
-
-dta_4gazepath_stim$event_id<- as.numeric(dta_4gazepath_stim$event_id)
-  
-dta_4gazepath_stim<- dta_4gazepath_stim%>%
-  group_by(participant,trial_no)%>%
-  arrange(time)%>%
-  mutate(time1 = time, time2 = lead(time))%>%
-   mutate(time_diff = time1 -time2)%>%
-  
-   mutate(event_diff = event_id -lead(event_id))%>%
- mutate(unk_sample = time_diff< .001,
-        unk_sample_ev = abs(event_diff)< 2,
-        )
-  
-
-
-tmp_test2<- dta_4gazepath_stim%>%
-  subset(  event_diff> 1)
-
-tmp_test2<- dta_4gazepath_stim%>%
-  subset(  event_diff< 2)
-
-table(tmp_test2$trial_no)
-
-table(tmp_test2$participant)
-
-unique(tmp_test2$participant)
-unique(tmp_test2$participant)
-
-tmp_test2<- dta_4gazepath_stim%>%
-  subset(  time_diff< .006)
-
-tmp_test3<-dta_4gazepath_stim%>%
-  subset(  time_diff> .006)
-
-table(tmp_test3$participant, tmp_test3$trial_no)
-  
-# dta_140_nodup<- tmp_test3%>%
-#   subset(ssid == "201")
-
-tmp_201<- dta_4gazepath_stim%>%
-  subset(ssid == "201")
-
-tmp_201_1<-  tmp_201%>% subset(  abs(time_diff)< .006)
-table(tmp_201_1$trial_no)
-
-# table(dta_140_nodup$trial_no)
-
-table(tmp_201$trial_no)
-```
-
-
-How to sort this, based on duplicate ID

@@ -246,12 +246,12 @@ posthocCheck <- function(classification, x, y) {
 
 
 # ORIOGINAL;
-
+# 
 simplify <-
   function(classification, x, y, Hz, D, width_px, width_mm, extra, extra_var){
     class <- rle(classification)
-    simple <- data.frame(class$values, class$lengths, 
-                         c(1, cumsum(class$lengths) + 1)[-(length(class$values) + 1)], 
+    simple <- data.frame(class$values, class$lengths,
+                         c(1, cumsum(class$lengths) + 1)[-(length(class$values) + 1)],
                          cumsum(class$lengths))
     if(length(which(class$values == 'f')) > 0){
       x_start <- y_start <- x_end <- y_end <- mean_x <- mean_y <- POGvar <- RMS <- numeric()
@@ -272,9 +272,9 @@ simplify <-
       POGsdSacAmp <- atan((POGvar / 2) / mean(D, na.rm = T)) * (180 / pi) * (width_mm / width_px) * 2
       POGsdSacAmp[!ss] <- sqrt(POGsdSacAmp)
       RMS[ss] <- NA
-      
-      simple <- data.frame(class$values, class$lengths * (1000/Hz), 
-                           c(1, cumsum(class$lengths * (1000/Hz)) + 1)[-(length(class$values) + 1)], 
+
+      simple <- data.frame(class$values, class$lengths * (1000/Hz),
+                           c(1, cumsum(class$lengths * (1000/Hz)) + 1)[-(length(class$values) + 1)],
                            cumsum(class$lengths * (1000/Hz)), x_start, y_start, x_end, y_end, mean_x, mean_y, POGsdSacAmp, RMS)
       names(simple)[1:4] <- c('Value', 'Dur', 'Start', 'End')
       if(!is.null(extra_var)){
@@ -290,6 +290,8 @@ simplify <-
     }
     return(simple)
   }
+
+
 
 
 comhull<-
@@ -348,7 +350,9 @@ pnt.in.poly <- function(points, poly) {
   poly <- as.matrix(poly)
   
   # Create the polygon object
-  polygon <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(poly)), ID = 1)))
+  # polygon <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(poly)), ID = 1)))
+  polygon <- sp::SpatialPolygons(list(sp::Polygons(list(suppressWarnings(sp::Polygon(poly))), ID = 1)))
+  
   
   # Create the points object
   points <- sp::SpatialPoints(points)

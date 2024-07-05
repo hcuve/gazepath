@@ -40,9 +40,9 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
     warning('The trial index in the data frame was not unique, therefore trials are renamed to be unique and the old trial index is stored in the data as TRIAL_OLD')
   }
   
-  ## find extra variables ORIGINAL
+  # find extra variables ORIGINAL
   extra <- list()
-  
+
   if(!is.null(extra_var)){
     if(sum(extra_var %in% names(data)) == length(extra_var)){
       for(i in unique(data[,trial])){
@@ -53,6 +53,23 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
       print('Please make sure the variables to pass through have the correct names')
     }
   }
+  
+  
+  # extra <- list()
+  # if (!is.null(extra_var)) {
+  #   cat("Checking extra variables...\n")
+  #   if (sum(extra_var %in% names(data)) == length(extra_var)) {
+  #     for (i in unique(data[, trial])) {
+  #       extra[[i]] <- sapply(1:length(extra_var), function(j) {
+  #         head(as.character(data[data[, trial] == i, which(names(data) == extra_var[j])]), 1)
+  #       })
+  #     }
+  #     cat("Extra variables processed successfully.\n")
+  #   } else {
+  #     extra_var <- NULL
+  #     print('Please make sure the variables to pass through have the correct names')
+  #   }
+  # }
   
   
   ## Check and filter distance data
@@ -115,31 +132,66 @@ gazepath <- function(data, x1, y1, x2 = NULL, y2 = NULL, d1, d2 = NULL, trial, h
     } 
   }
   
-  if(method == 'gazepath'){
+  
+  # if(method == 'gazepath'){
+  #   fix <- thres_vel <- numeric()
+  #   final <- s <- list()
+  #   for(i in 1:length(unique(data[,trial]))){
+  #     ## Boundary check for each trial
+  #     X[[i]] <- Boundary(X[[i]], (res_x - width_px[i]) / 2, res_x - (res_x - width_px[i]) / 2)
+  #     Y[[i]] <- Boundary(Y[[i]], (res_y - height_px[i]) / 2, res_y - (res_y - height_px[i]) / 2)
+  #     ## Ensure there is at least 1 second of data available
+  #     if(length(which(!is.na(X[[i]]))) > samplerate & length(which(!is.na(Y[[i]]))) > samplerate & length(which(!is.na(D[[i]]))) > samplerate){
+  #       ## Use the interpolation function
+  #       interpol <- Interpolate(X[[i]], Y[[i]], D[[i]], height_mm[i], width_mm[i], height_px[i], width_px[i], res_x = res_x, res_y = res_y, Hz = samplerate, in_thres = in_thres, thres_dur = thres_dur)
+  #       if(interpol[[8]] == 'Return'){
+  #         final[[i]] <- ifelse(interpol[[7]] == 'missing', NA, ifelse(interpol[[7]] == 'fixation', 'f', 's'))
+  #         thres_vel[i] <- interpol[[5]]
+  #         s[[i]] <- interpol[[6]]
+  #         X[[i]] <- interpol[[1]]
+  #         Y[[i]] <- interpol[[2]]
+  #       } else {
+  #         s[[i]] <- NA; thres_vel[i] <- NA; final[[i]] <- NA
+  #       }
+  #     } else {
+  #       s[[i]] <- NA; thres_vel[i] <- NA; final[[i]] <- NA
+  #     }
+  #   }
+  # }
+  
+  
+  
+  
+  if (method == 'gazepath') {
     fix <- thres_vel <- numeric()
     final <- s <- list()
-    for(i in 1:length(unique(data[,trial]))){
-      ## Boundary check for each trial
+    for (i in 1:length(unique(data[, trial]))) {
+      cat("Processing trial", i, "...\n")
       X[[i]] <- Boundary(X[[i]], (res_x - width_px[i]) / 2, res_x - (res_x - width_px[i]) / 2)
       Y[[i]] <- Boundary(Y[[i]], (res_y - height_px[i]) / 2, res_y - (res_y - height_px[i]) / 2)
-      ## Ensure there is at least 1 second of data available
-      if(length(which(!is.na(X[[i]]))) > samplerate & length(which(!is.na(Y[[i]]))) > samplerate & length(which(!is.na(D[[i]]))) > samplerate){
-        ## Use the interpolation function
+      
+      # Debugging statements for data length check
+      cat("Checking data length for trial", i, "...\n")
+      if (length(which(!is.na(X[[i]]))) > samplerate & length(which(!is.na(Y[[i]]))) > samplerate & length(which(!is.na(D[[i]]))) > samplerate) {
         interpol <- Interpolate(X[[i]], Y[[i]], D[[i]], height_mm[i], width_mm[i], height_px[i], width_px[i], res_x = res_x, res_y = res_y, Hz = samplerate, in_thres = in_thres, thres_dur = thres_dur)
-        if(interpol[[8]] == 'Return'){
+        if (interpol[[8]] == 'Return') {
           final[[i]] <- ifelse(interpol[[7]] == 'missing', NA, ifelse(interpol[[7]] == 'fixation', 'f', 's'))
           thres_vel[i] <- interpol[[5]]
           s[[i]] <- interpol[[6]]
           X[[i]] <- interpol[[1]]
           Y[[i]] <- interpol[[2]]
+          cat("Trial", i, "processed successfully.\n")
         } else {
           s[[i]] <- NA; thres_vel[i] <- NA; final[[i]] <- NA
+          cat("Interpolation did not return expected values for trial", i, ".\n")
         }
       } else {
         s[[i]] <- NA; thres_vel[i] <- NA; final[[i]] <- NA
+        cat("Not enough data for trial", i, ".\n")
       }
     }
   }
+  
   
   ## Perform post-hoc check if requested
   if(posthoc == TRUE){
