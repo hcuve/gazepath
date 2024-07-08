@@ -1,4 +1,4 @@
-# Gazepath updated fucntions - July 8th 2024
+# Gazepath updated functions - July 8th 2024
 This repository is a fork that recreates and updates the gazepath functions for parsing gaze data into fixations and saccades, as the original gazepath package is no longer available and does not run on newer versions of R. I have adapted and updated the functions to run directly in R without the need for the package.
 
 
