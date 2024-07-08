@@ -7,6 +7,7 @@ run the code u the scripts ```helperfunctions.R``` and  ```GazePathHC.R``` to re
 
 
 ```
+library(tidyverse)
 dta_4gazepath_stim <- as.data.frame(as.matrix(dta_4gazepath_stim))
 dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)] <- lapply(dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)], as.numeric)
 
