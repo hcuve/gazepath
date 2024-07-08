@@ -76,11 +76,20 @@ tmp_stim_by_pp$`140` %>%
 plot.gazepath(gazepath_results$`140`, trial_index = 6)
 
 ```
-To Do
-Organise the code and fix typos
-Split helper functions into individual scripts
-Recreate the Shiny app
+# To Do
+- Organise the code and fix typos
+- Split helper functions into individual scripts
+- Recreate the Shiny app
 
-If you use this, please cite the original authors:
+
+# citation
+
+If you use this, please check and cite the original authors:
 van Renswoude, D. R., Raijmakers, M. E., Koornneef, A., Johnson, S. P., Hunnius, S., & Visser, I. (2018). Gazepath: An eye-tracking analysis tool that accounts for individual differences and data quality. Behavior Research Methods, 50, 834-852.
+
+
+# Disclaimer
+This software has been adapted for current use, but I am not the original author. It is provided "as is", without any warranties. Use at your own risk. The authors are not liable for any issues or damages resulting from its use.
+
+
 
