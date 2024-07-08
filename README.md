@@ -77,6 +77,10 @@ tmp_stim_by_pp$`140` %>%
 plot.gazepath(gazepath_results$`140`, trial_index = 6)
 
 ```
+
+#errors
+if you are getting errors (e.g. rel related) , it likely has somethign to do with formatting issues of the data, so check datframe, column types and if needed re-do them
+
 # To Do
 - Organise the code and fix typos
 - Split helper functions into individual scripts

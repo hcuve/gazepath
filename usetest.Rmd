@@ -7,33 +7,39 @@ output: html_document
 
 
 ```{r}
+library(tidyverse)
 # takes too long
-# why do i ned to do this below to avoid errors in the gazath
+# why do i need to do this below to avoid errors in the gazepath is not clear, but suggest that sopmewhere along the procesign pipelile the daatframe becomes formated weirdly
+
+colnames(dta_4gazepath_stim)
+
+
 dta_4gazepath_stim<- as.data.frame(as.matrix(dta_4gazepath_stim))
-# 
-# dta_4gazepath_stim1$left_gaze_x_cor_pix<- as.numeric(dta_4gazepath_stim1$left_gaze_x_cor_pix)
-# dta_4gazepath_stim1$left_gaze_y_cor_pix<- as.numeric(dta_4gazepath_stim1$left_gaze_y_cor_pix)
-# dta_4gazepath_stim1$right_gaze_x_cor_pix<- as.numeric(dta_4gazepath_stim1$right_gaze_x_cor_pix)
-# dta_4gazepath_stim1$right_gaze_y_cor_pix<- as.numeric(dta_4gazepath_stim1$right_gaze_y_cor_pix)
-# dta_4gazepath_stim1$distance_mm<- as.numeric(dta_4gazepath_stim1$distance_mm)
+
+# Convert data to dataframe
+dta_4gazepath_stim <- as.data.frame(as.matrix(dta_4gazepath_stim))
+
+
+
+```
+
+
+# View the transformed data
+str(dta_4gazepath_stim)
+
+```
 
 
 # Convert relevant columns to numeric
 colnames(dta_4gazepath_stim)
 
 dta_4gazepath_stim
+dta_4gazepath_stim<- as.data.frame(as.matrix(dta_4gazepath_stim))
 dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)] <- lapply(dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)], as.numeric)
 
 dta_4gazepath_stim$trial_no<- as.factor(dta_4gazepath_stim$trial_no)
 unique(dta_4gazepath_stim$trial_no)
 
-
-
-dta_140<- dta_4gazepath_stim%>%
-  subset(ssid =="140")
-
-dta_142<- dta_4gazepath_stim%>%
-  subset(ssid =="142")
 
 library(zoo)
 
@@ -46,9 +52,8 @@ unique(dta_140$text)
 
 
 
-library(gazepath)
 library(dplyr)
-
+# 
 # Split the data by participant
 tmp_stim_by_pp <- split(dta_4gazepath_stim, dta_4gazepath_stim$participant)
 

@@ -2,10 +2,10 @@
 
 # Load necessary libraries
 library(sp)
-library(jpeg)
+# library(jpeg)
 library(zoo)
 library(scales)
-library(shiny)
+# library(shiny)
 
 # helper fucntionss
 
