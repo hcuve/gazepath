@@ -66,6 +66,7 @@ for (participant_id in names(tmp_stim_by_pp)) {
 # Save gazepath results to an RDS file
 saveRDS(gazepath_results, "gazepath_results.rds")
 saveRDS(gp_summary_results, "gp_summary_results.rds")
+saveRDS(tmp_stim_by_pp, "tmp_stim_by_pp.rds")
 
 # Example plots that compare before and after to make sure that parsed data matched the raw data
 tmp_stim_by_pp$`140` %>%
