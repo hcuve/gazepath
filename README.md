@@ -8,7 +8,11 @@ run the code u the scripts ```helperfunctions.R``` and  ```GazePathHC.R``` to re
 
 ```
 library(tidyverse)
+
+# load the data
+#transform the data into  matrix if needed
 dta_4gazepath_stim <- as.data.frame(as.matrix(dta_4gazepath_stim))
+#transform specific columns that the gazpearth will need into the correct formats
 dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)] <- lapply(dta_4gazepath_stim[, c(17, 18, 19, 20, 23, 28)], as.numeric)
 
 # Split the data by participant
@@ -35,6 +39,8 @@ for (participant_id in names(tmp_stim_by_pp)) {
   dta$trial_no <- as.factor(as.numeric(as.character(dta$trial_no)))
 
   # Run the gazepath analysis (you can run just just thes ection below if you are running only a single file/particiapnt )
+  #
+  
   rslt_gp_stim <- gazepath(dta, 
                            x1 = 17, y1 = 19, 
                            x2 = 18, y2 = 20,
@@ -65,8 +71,9 @@ saveRDS(gp_summary_results, "gp_summary_results.rds")
 tmp_stim_by_pp$`140` %>%
   subset(trial_no == 6) %>%
   ggplot(aes(as.numeric(gaze_x_cor_pix), as.numeric(gaze_y_cor_pix))) +
-  geom_line() +
-  geom_line(aes(y = as.numeric(gaze_y_cor_pix)))
+  geom_path() +
+  geom_path(aes(y = as.numeric(gaze_y_cor_pix)))+
+  scale_y_reverse
 
 tmp_stim_by_pp$`140` %>%
   subset(trial_no == 6) %>%
@@ -77,6 +84,52 @@ tmp_stim_by_pp$`140` %>%
 plot.gazepath(gazepath_results$`140`, trial_index = 6)
 
 ```
+
+
+ Arguments
+data
+The dataframe with at least the raw x- and y-coordinates, the distance to the screen in mm and a trial index.
+
+x1
+The column name (between quotes, e.g. 'x1') or the number of the column in the dataframe containing the x-coordinates
+
+y1
+The column name (between quotes, e.g. 'y1') or the number of the column in the dataframe containing the y-coordinates
+
+x2
+When tracking was binocular, the column name (between quotes, e.g. 'x2') or number of the dataframe containing the x-coordinates of the second eye
+
+y2
+When tracking was binocular, the column name (between quotes, e.g. 'y2') or number of the dataframe containing the y-coordinates of the second eye
+
+d1
+The column name (between quotes, e.g. 'd2') or numberof the dataframe containing the distance in mm
+
+d2
+When tracking was binocular, the column name (between quotes, e.g. 'd2') or number of the dataframe containing the distance in mm of the second eye
+
+trial
+The column name (between quotes, e.g. 'TRIAL_INDEX') or number of the dataframe containing the trial or stimuli index
+
+height_px
+The height of the stimuli in pixels, can be a single value or a vector of length number of trials when stimuli differ in size per trial
+
+height_mm
+The height of the stimuli in mm, can be a single value or a vector of length number of trials when stimuli differ in size per trial
+
+width_px
+The width of the stimuli in pixels, can be a single value or a vector of length number of trials when stimuli differ in size per trial
+
+width_mm
+The height of the stimuli in pixels, can be a single value or a vector of length number of trials when stimuli differ in size per trial trials
+
+# extra_var A vector of names of the variables that must return in the output file, for example, condition, stimuli name, etc.
+
+The vertical resolution of the monitor in pixels
+
+samplerate
+method
+
 
 #errors
 if you are getting errors (e.g. rel related) , it likely has somethign to do with formatting issues of the data, so check datframe, column types and if needed re-do them
